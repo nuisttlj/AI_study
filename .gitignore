@@ -1,0 +1,11 @@
+*.pt
+*jpg*
+*.gz
+*-ubyte
+*gen_face
+*.png
+*.rar
+*.pt_bak
+*.pt1
+*ckpt*
+*param*
