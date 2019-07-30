@@ -4,7 +4,7 @@ from torch.optim import Optimizer
 import torch
 import warnings
 
-class Lookahead(Optimizer):1
+class Lookahead(Optimizer):2
     def __init__(self, optimizer, k=5, alpha=0.5):
         self.optimizer = optimizer
         self.k = k
