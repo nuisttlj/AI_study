@@ -122,3 +122,7 @@ print(out.size())
 # w = ["{0}.png".format(i) for i in range(6247)]
 #
 # print(w)
+
+
+torch.reshape()
+

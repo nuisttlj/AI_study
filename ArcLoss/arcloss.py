@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import torch.nn.functional as F
+from lookahead import Lookahead
 
 
 class Arcsoftmax(nn.Module):
@@ -69,12 +70,14 @@ if __name__ == '__main__':
     weight_save_path = r"./params/arc_loss.pt"
     dataset = datasets.MNIST(root="../MyTest01/minist_torch/", train=True, transform=transforms.ToTensor(),
                              download=True)
-    dataloader = DataLoader(dataset=dataset, batch_size=512, shuffle=True, num_workers=5)
+    dataloader = DataLoader(dataset=dataset, batch_size=1024, shuffle=True, num_workers=5)
     cls_net = ClsNet()
     cls_net.cuda()
     if os.path.exists(weight_save_path):
         cls_net.load_state_dict(torch.load(weight_save_path))
     fig, ax = plt.subplots()
+    optimizer = optim.Adam(cls_net.parameters())
+    lookahead = Lookahead(optimizer)
     for epoch in range(100000):
         for i, (xs, ys) in enumerate(dataloader):
             xs = xs.cuda()
@@ -82,13 +85,12 @@ if __name__ == '__main__':
             coordinate, out = cls_net(xs, 1, 1)
             coordinate = coordinate.cpu().detach().numpy()
             loss = cls_net.get_loss(out, ys)
-            optimizer = optim.Adam(cls_net.parameters())
             # print([i for i, c in cls_net.named_parameters()])
             # exit()
 
-            optimizer.zero_grad()
+            lookahead.zero_grad()
             loss.backward()
-            optimizer.step()
+            lookahead.step()
 
             print(loss.cpu().detach().item())
             torch.save(cls_net.state_dict(), weight_save_path)
@@ -96,6 +98,9 @@ if __name__ == '__main__':
             ys = ys.cpu().numpy()
             plt.cla()
             plt.ion()
+            plt.xlim(-1, 1)
+            plt.ylim(-1, 1)
+            coordinate = coordinate / coordinate.max()
             for j in np.unique(ys):
                 xx = coordinate[ys == j][:, 0]
                 yy = coordinate[ys == j][:, 1]

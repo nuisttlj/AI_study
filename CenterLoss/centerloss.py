@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import torch.nn.functional as F
+from lookahead import Lookahead
 
 
 class CenterLoss(nn.Module):
@@ -34,7 +35,7 @@ class ClsNet(nn.Module):
                                            nn.Linear(128, 2), nn.PReLU())
         self.out_layer = nn.Sequential(nn.Linear(2, 10))
         self.loss_fn1 = CenterLoss(2, 10)
-        self.loss_fn2 = nn.CrossEntropyLoss()
+        self.loss_fn2 = nn.CrossEntropyLoss(reduction="sum")
 
     def forward(self, x):
         conv = self.conv_layer(x)
@@ -53,12 +54,14 @@ if __name__ == '__main__':
     weight_save_path = r"./params/center_loss.pt"
     dataset = datasets.MNIST(root="../MyTest01/minist_torch/", train=True, transform=transforms.ToTensor(),
                              download=True)
-    dataloader = DataLoader(dataset=dataset, batch_size=512, shuffle=True, num_workers=5)
+    dataloader = DataLoader(dataset=dataset, batch_size=1024, shuffle=True, num_workers=5)
     cls_net = ClsNet()
     cls_net.cuda()
     if os.path.exists(weight_save_path):
         cls_net.load_state_dict(torch.load(weight_save_path))
     fig, ax = plt.subplots()
+    optimizer = optim.Adam(cls_net.parameters())
+    lookahead = Lookahead(optimizer)
     for epoch in range(100000):
         for i, (xs, ys) in enumerate(dataloader):
             # xs = xs.reshape(xs.size(0), -1)
@@ -66,12 +69,11 @@ if __name__ == '__main__':
             ys = ys.cuda()
             coordinate = cls_net(xs)
             coordinate = coordinate.cpu().detach().numpy()
-            loss = cls_net.get_loss(ys, 0.5)
-            optimizer = optim.Adam(cls_net.parameters())
+            loss = cls_net.get_loss(ys, 0.7)
 
-            optimizer.zero_grad()
+            lookahead.zero_grad()
             loss.backward()
-            optimizer.step()
+            lookahead.step()
 
             print(loss.cpu().detach().item())
             torch.save(cls_net.state_dict(), weight_save_path)
