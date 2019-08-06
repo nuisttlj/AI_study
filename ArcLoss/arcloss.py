@@ -66,8 +66,17 @@ class ClsNet(nn.Module):
         # exit()
         # return torch.sum(-ys*out)
 
+def weight_init(m):
+    if isinstance(m, nn.Linear):
+        nn.init.kaiming_normal_(m.weight)
+    elif isinstance(m, nn.Conv2d):
+        nn.init.kaiming_normal_(m.weight)
+    elif isinstance(m, nn.ConvTranspose2d):
+        nn.init.kaiming_normal_(m.weight)
+
+
 if __name__ == '__main__':
-    weight_save_path = r"./params/arc_loss.pt"
+    weight_save_path = r"./params/arc_loss_test.pt"
     dataset = datasets.MNIST(root="../MyTest01/minist_torch/", train=True, transform=transforms.ToTensor(),
                              download=True)
     dataloader = DataLoader(dataset=dataset, batch_size=1024, shuffle=True, num_workers=5)
@@ -98,9 +107,9 @@ if __name__ == '__main__':
             ys = ys.cpu().numpy()
             plt.cla()
             plt.ion()
-            plt.xlim(-1, 1)
-            plt.ylim(-1, 1)
-            coordinate = coordinate / coordinate.max()
+            plt.xlim(-10, 10)
+            plt.ylim(-10, 10)
+            coordinate = (coordinate / np.abs(coordinate).max()) * 10
             for j in np.unique(ys):
                 xx = coordinate[ys == j][:, 0]
                 yy = coordinate[ys == j][:, 1]
